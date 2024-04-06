@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "pathtrace-rs"
+name = "pathtrace"
 version = "0.1.0"
