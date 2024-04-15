@@ -9,7 +9,7 @@ pub struct Interval {
 }
 
 const EMPTY: Interval = Interval {min: INFINITY, max: -INFINITY};
-const UNIVERSE: Interval = Interval {min: -INFINITY, max: INFINITY};
+//const UNIVERSE: Interval = Interval {min: -INFINITY, max: INFINITY};
 
 impl Default for Interval {
     // The default interval is empty

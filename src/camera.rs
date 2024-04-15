@@ -13,6 +13,8 @@ pub struct Camera {
     image_width:  i32,
     image_height: i32,
     aspect_ratio: f64,
+    samples_per_pixel: i32,
+    pixel_sample_scale:f64,
 
     // Camera things
     focal_length: f64,    // Distance to viewport
@@ -36,6 +38,9 @@ impl Camera {
         //let image_height = 256;
         let aspect_ratio = image_width as f64 / image_height as f64;
 
+        let samples_per_pixel = 10;
+        let pixel_sample_scale = 1.0/samples_per_pixel as f64;
+
         let focal_length = 1.0;
         let viewport_height = 2.0;
         let viewport_width = viewport_height * aspect_ratio;
@@ -57,6 +62,8 @@ impl Camera {
             image_width,
             image_height,
             aspect_ratio,
+            samples_per_pixel,
+            pixel_sample_scale,
 
             focal_length,
             viewport_height,
@@ -74,6 +81,30 @@ impl Camera {
         }
     }
 
+    pub fn render(&self, world: &dyn Hittable) {
+        let mut writer = io::stdout(); // Can be changed later to any file we want
+        write!(writer, "P3\n{} {}\n255\n", self.image_width, self.image_height)
+            .unwrap();
+
+        for y in 0..self.image_height {
+            eprint!("\rscanning line {}", y);
+            for x in 0..self.image_width {
+
+                let mut color = Vec3::new(0.0, 0.0, 0.0);
+
+                for i in 0..self.samples_per_pixel {
+                    let r = self.get_ray(x, y);
+                    color = color + self.ray_color(r, world);
+                }
+
+                color = color * self.pixel_sample_scale;
+
+                color::color_print(&mut writer, color).unwrap();
+            }
+        }
+        eprintln!("\rDone.                    ");
+    }
+
     fn ray_color(&self, r: Ray, world: &dyn Hittable) -> Vec3 {
         let mut rec = HitRecord::new();
         if world.hit(r, Interval::new(0.0, utils::INFINITY), &mut rec) {
@@ -86,25 +117,22 @@ impl Camera {
         (1.0-a)*Vec3::new(1.0, 1.0, 1.0) + a*Vec3::new(0.6, 0.5, 1.0)
     }
 
-    pub fn render(&self, world: &dyn Hittable) {
-        let mut writer = io::stdout(); // Can be changed later to any file we want
-        write!(writer, "P3\n{} {}\n255\n", self.image_width, self.image_height)
-            .unwrap();
+    fn get_ray(&self, x: i32, y: i32) -> Ray {
 
-        for y in 0..self.image_height {
-            eprint!("\rscanning line {}", y);
-            for x in 0..self.image_width {
-                let pixel_center = self.pixel100_loc + 
-                    (x as f64*self.pixel_delta_u) + 
-                    (y as f64*self.pixel_delta_v);
-                let ray_direction = pixel_center - self.camera_center;
+        // Get random sample position
+        let rand_offset = Self::sample_square();
 
-                let color = self.ray_color(Ray::new(self.camera_center, ray_direction), world);
+        let pixel_center = self.pixel100_loc + 
+            ((x as f64 + rand_offset.x)*self.pixel_delta_u) + 
+            ((y as f64 + rand_offset.y)*self.pixel_delta_v);
+        let ray_direction = pixel_center - self.camera_center;
 
-                color::color_print(&mut writer, color).unwrap();
-            }
-        }
-        eprintln!("\rDone.                    ");
+        Ray::new(self.camera_center, ray_direction)
+    }
+
+    // Creates a random sample 
+    fn sample_square() -> Vec3 {
+        Vec3::new(utils::rand_float() - 0.5, utils::rand_float() - 0.5, 0.0)
     }
 }
 
