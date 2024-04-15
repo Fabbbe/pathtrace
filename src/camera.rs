@@ -10,10 +10,13 @@ use crate::color;
 
 pub struct Camera {
     // Image
-    image_width:  i32,
-    image_height: i32,
+    pub image_width:  i32,
+    pub image_height: i32,
     aspect_ratio: f64,
-    samples_per_pixel: i32,
+
+    // Pixel
+    pub samples_per_pixel: i32,
+    pub max_depth: i32,
     pixel_sample_scale:f64,
 
     // Camera things
@@ -33,12 +36,11 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn from_resolution(image_width: i32, image_height: i32) -> Self {
+    pub fn from_resolution(image_width: i32, image_height: i32, samples_per_pixel: i32, max_depth: i32) -> Self {
         //let image_width = 256;
         //let image_height = 256;
         let aspect_ratio = image_width as f64 / image_height as f64;
 
-        let samples_per_pixel = 10;
         let pixel_sample_scale = 1.0/samples_per_pixel as f64;
 
         let focal_length = 1.0;
@@ -62,8 +64,11 @@ impl Camera {
             image_width,
             image_height,
             aspect_ratio,
+
             samples_per_pixel,
+            max_depth,
             pixel_sample_scale,
+
 
             focal_length,
             viewport_height,
@@ -94,7 +99,7 @@ impl Camera {
 
                 for i in 0..self.samples_per_pixel {
                     let r = self.get_ray(x, y);
-                    color = color + self.ray_color(r, world);
+                    color = color + self.ray_color(r, self.max_depth, world);
                 }
 
                 color = color * self.pixel_sample_scale;
@@ -105,10 +110,16 @@ impl Camera {
         eprintln!("\rDone.                    ");
     }
 
-    fn ray_color(&self, r: Ray, world: &dyn Hittable) -> Vec3 {
+    fn ray_color(&self, r: Ray, depth: i32, world: &dyn Hittable) -> Vec3 {
+        if depth <= 0 { // When max depth has been reached
+            return Vec3::new(0.0, 0.0, 0.0);
+        }
+
         let mut rec = HitRecord::new();
-        if world.hit(r, Interval::new(0.0, utils::INFINITY), &mut rec) {
-            return (rec.normal + Vec3::new(1.0, 1.0, 1.0)) / 2.0;
+        if world.hit(r, Interval::new(0.001, utils::INFINITY), &mut rec) {
+            let direction = Vec3::rand_on_hemisphere(rec.normal);
+            return 0.5 * self.ray_color(Ray::new(rec.p, direction), depth-1, world);
+            //return 0.5 * (rec.normal + Vec3::new(1.0, 1.0, 1.0));
         }
         
         // Calculate sky color depending on ray unit y coordinate
@@ -138,7 +149,7 @@ impl Camera {
 
 impl Default for Camera {
     fn default() -> Self {
-        Camera::from_resolution(256, 256)
+        Camera::from_resolution(256, 256, 100, 10)
     }
 }
 

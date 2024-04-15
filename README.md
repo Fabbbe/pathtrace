@@ -20,3 +20,10 @@ Or if your terminal supports it:
 cargo run | img2sixel
 ```
 
+## TODO
+
+Except for the task of developing the project it is necessary to:
+
+* Write documentation for structs and functions
+* Write tests for the core stuffs
+

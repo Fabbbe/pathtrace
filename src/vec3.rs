@@ -1,5 +1,7 @@
 use std::ops::{Add, Sub, Mul, Div, Neg};
 
+use crate::utils;
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Vec3 {
     //p: [f64; 3],
@@ -107,6 +109,44 @@ impl Vec3 {
 
     pub fn unit(self) -> Self {
         self / self.length()
+    }
+
+    // Returns a vector where x, y and z are randomized from 0 to 1
+    pub fn rand() -> Self {
+        Vec3 {
+            x: utils::rand_float(),
+            y: utils::rand_float(),
+            z: utils::rand_float(),
+        }
+    }
+
+    pub fn rand_in(min: f64, max: f64) -> Self {
+        Vec3 {
+            x: utils::rand_float_in(min, max),
+            y: utils::rand_float_in(min, max),
+            z: utils::rand_float_in(min, max),
+        }
+    }
+
+    pub fn rand_in_unit_sphere() -> Self {
+        loop {
+            let p = Vec3::rand_in(-1.0, 1.0);
+            if p.length_squared() < 1.0 {
+                return p;
+            }
+        }
+    }
+
+    pub fn rand_unit_vector() -> Self {
+        Self::rand_in_unit_sphere().unit()
+    }
+
+    pub fn rand_on_hemisphere(normal: Vec3) -> Self {
+        let p = Self::rand_unit_vector();
+        if p.dot(normal) > 0.0 {
+            return p
+        }
+        -p
     }
 }
 
